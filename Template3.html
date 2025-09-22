@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>IT Resume - Template3</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<style>
+  body {
+    font-family: Calibri, Arial, sans-serif;
+    margin: 6px auto;
+    max-width: 900px;
+    background: linear-gradient(145deg, #1e3c72, #2a5298);
+    color: #fff;
+    padding: 20px;
+  }
+  h1 { font-size: 18pt; margin-bottom: 8px; }
+  h2 { font-size: 12pt; margin: 10px 0 5px; border-bottom: 1px solid rgba(255,255,255,0.3); }
+  label { display: block; margin-top: 8px; font-weight: bold; }
+  input, textarea {
+    width: 98%;
+    padding: 6px;
+    margin: 4px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+  }
+  button {
+    margin: 6px 4px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    background: linear-gradient(145deg, #1e90ff, #0d6efd);
+    color: #fff;
+    cursor: pointer;
+  }
+  button:hover { background: #0b5ed7; }
+  #resumePreview {
+    margin-top: 20px;
+    background: #fff;
+    color: #000;
+    box-shadow: 0 0 8px rgba(0,0,0,0.5);
+    border-radius: 6px;
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 35% 65%;
+    gap: 10px;
+  }
+  .left {
+    background: #1e3c72;
+    color: #fff;
+    padding: 12px;
+    border-radius: 6px;
+    text-align: center;
+  }
+  .left img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 10px;
+    border: 3px solid #fff;
+  }
+  .left h1 { font-size: 16pt; color: #fff; }
+  .left h2 { border-bottom: 1px solid rgba(255,255,255,0.5); }
+  .right h2 { border-bottom: 2px solid #1e3c72; }
+  ul { margin: 4px 0 8px 18px; padding: 0; }
+  #cropContainer {
+    max-width: 260px;
+    margin-top: 10px;
+    text-align: center;
+  }
+  #cropImage {
+    max-width: 100%;
+    max-height: 250px;
+    display: none;
+    border: 2px dashed #ddd;
+    border-radius: 6px;
+    background: #f5f5f5;
+  }
+</style>
+</head>
+<body>
+
+<h1><i>IT Resume Generator(with Photo)</i></h1>
+
+<form id="resumeForm">
+  <label>Upload Photo</label>
+  <input type="file" id="photoInput" accept="image/*">
+  <div id="cropContainer">
+    <img id="cropImage"/>
+  </div>
+  <button type="button" id="cropBtn" style="display:none;">Crop & Save Photo</button>
+
+  <label>Full Name</label><input id="fullName" required>
+  <label>Email</label><input id="email" required>
+  <label>Phone</label><input id="phone" required>
+  <label>Location</label><input id="location" required>
+  <label>LinkedIn URL (Optional)</label><input id="linkedin">
+  <label>GitHub URL (Optional)</label><input id="github">
+
+  <label>Career Objective</label>
+  <textarea id="objective" required></textarea>
+
+  <h2>Education</h2>
+  <div id="educationContainer"></div>
+  <button type="button" onclick="addField('educationContainer','Education Details')">+ Add Education</button>
+  
+  <h2>Projects (Optional)</h2>
+  <div id="projectsContainer"></div>
+  <button type="button" onclick="addField('projectsContainer','Project Details')">+ Add Project</button>
+
+  <h2>Internships (Optional)</h2>
+  <div id="internshipsContainer"></div>
+  <button type="button" onclick="addField('internshipsContainer','Internship Details')">+ Add Internship</button>
+
+  <h2>Skills</h2>
+  <textarea id="skills" placeholder="e.g., Python, SQL, Communication"></textarea>
+
+  <h2>Certifications (Optional)</h2>
+  <div id="certsContainer"></div>
+  <button type="button" onclick="addField('certsContainer','Certification Details')">+ Add Certification</button>
+  
+  <h2>Workshops (Optional)</h2>
+  <div id="workContainer"></div>
+  <button type="button" onclick="addField('workContainer','Workshops')">+ Add Workshops</button>
+
+  <h2>Achievements (Optional)</h2>
+  <div id="achievementsContainer"></div>
+  <button type="button" onclick="addField('achievementsContainer','Achievement Details')">+ Add Achievement</button>
+
+  <h2>Interests</h2>
+  <textarea id="interests" placeholder="e.g., Robotics, Music, Sports"></textarea>
+
+  <br>
+  <button type="button" id="previewBtn">Preview Resume</button>
+  <button type="button" id="generatePdf">Download PDF</button>
+  <button type="reset">Reset</button>
+</form>
+
+<h2>Resume Preview</h2>
+<div id="resumePreview"></div>
+<button class="back-btn" onclick="window.location.href='it_resume.html'">
+    ⬅ Back to IT-Resume Type
+</button>
+
+<script>
+const el = id => document.getElementById(id);
+let uploadedPhoto = "";
+let cropper;
+
+function addField(containerId, placeholder) {
+  const div = document.createElement('div');
+  div.innerHTML = `<input placeholder="${placeholder}">`;
+  document.getElementById(containerId).appendChild(div);
+}
+
+function collectList(containerId) {
+  const inputs = document.getElementById(containerId).querySelectorAll('input');
+  let listItems = '';
+  inputs.forEach(i => {
+    if (i.value.trim()) listItems += `<li>${i.value}</li>`;
+  });
+  return listItems;
+}
+
+// Image upload + crop
+el("photoInput").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = evt => {
+      const img = el("cropImage");
+      img.src = evt.target.result;
+      img.style.display = "block";
+      if (cropper) cropper.destroy();
+      cropper = new Cropper(img, {
+        aspectRatio: 1,
+        viewMode: 1,
+        autoCropArea: 1,
+        responsive: true,
+        dragMode: "move"
+      });
+      el("cropBtn").style.display = "inline-block";
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+el("cropBtn").addEventListener("click", () => {
+  const canvas = cropper.getCroppedCanvas({ width: 200, height: 200 });
+  uploadedPhoto = canvas.toDataURL("image/png");
+  el("cropImage").src = uploadedPhoto;
+  cropper.destroy();
+  el("cropBtn").style.display = "none";
+  alert("✅ Photo cropped & saved!");
+  renderPreview();
+});
+
+function renderPreview() {
+  const linkedin = el('linkedin').value.trim();
+  const github = el('github').value.trim();
+
+  const photoHtml = uploadedPhoto ? `<img src="${uploadedPhoto}" alt="Profile Photo">` : "";
+
+  const leftColumn = `
+    ${photoHtml}
+    <h1>${el('fullName').value}</h1>
+    <p>Email: ${el('email').value}</p>
+    <p>Phone: ${el('phone').value}</p>
+    <p>Location: ${el('location').value}</p>
+    ${linkedin ? `<p>LinkedIn: ${linkedin}</p>` : ""}
+    ${github ? `<p>GitHub: ${github}</p>` : ""}
+    <h2>Skills</h2><ul>${el('skills').value.split(",").map(s=>s.trim()).filter(Boolean).map(s=>`<li>${s}</li>`).join("")}</ul>
+    <h2>Interests</h2><ul>${el('interests').value.split(",").map(i=>i.trim()).filter(Boolean).map(i=>`<li>${i}</li>`).join("")}</ul>
+  `;
+
+  let rightColumn = `
+    <h2>Career Objective</h2><p>${el('objective').value}</p>
+    <h2>Education</h2><ul>${collectList('educationContainer')}</ul>
+  `;
+  const projects = collectList('projectsContainer');
+  if (projects) rightColumn += `<h2>Projects</h2><ul>${projects}</ul>`;
+  const interns = collectList('internshipsContainer');
+  if (interns) rightColumn += `<h2>Internships</h2><ul>${interns}</ul>`;
+  const certs = collectList('certsContainer');
+  if (certs) rightColumn += `<h2>Certifications</h2><ul>${certs}</ul>`;
+  const ach = collectList('achievementsContainer');
+  if (ach) rightColumn += `<h2>Achievements</h2><ul>${ach}</ul>`;
+  const work = collectList('workContainer');
+  if (work) rightColumn += `<h2>Workshops</h2><ul>${work}</ul>`;
+  
+  el('resumePreview').innerHTML = `
+    <div class="left">${leftColumn}</div>
+    <div class="right">${rightColumn}</div>
+  `;
+}
+
+el('previewBtn').addEventListener('click', renderPreview);
+
+el('generatePdf').addEventListener('click', () => {
+  renderPreview();
+  const opt = {
+    margin: 5,
+    filename: (el('fullName').value || 'Resume') + '_Template2.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  html2pdf().set(opt).from(document.getElementById('resumePreview')).save();
+});
+</script>
+
+</body>
+</html>
